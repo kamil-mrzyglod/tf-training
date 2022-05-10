@@ -1,0 +1,89 @@
+# .NET Core Function App to Windows on Azure
+# Build a .NET Core function app and deploy it to Azure as a Windows function App.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+  branches:
+    include: [ main ]
+  paths: 
+    include: [ function/* ]
+variables:
+  # Azure Resource Manager connection created during pipeline creation
+  azureSubscription: '1a116371-aa8f-42b6-a0af-750168eb2c47'
+
+  # Function app name
+  functionAppName: 'kamilm-tf-functionapp'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+  # Working Directory
+  workingDirectory: '$(System.DefaultWorkingDirectory)/function'
+  group: Secrets
+
+stages:
+- stage: Build
+  displayName: Build stage
+
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: Build
+      inputs:
+        command: 'build'
+        projects: |
+          $(workingDirectory)/*.csproj
+        arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive files'
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+        replaceExistingArchive: true
+
+    - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+      artifact: drop
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'development'
+    pool:
+      vmImage: $(vmImageName)
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureKeyVault@2
+            inputs:
+              azureSubscription: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
+              KeyVaultName: 'kamiltfkvbackend'
+              SecretsFilter: '*'
+              RunAsPreJob: false
+          - task: AzureFunctionApp@1
+            displayName: 'Azure functions app deploy'
+            env:
+              SQL_CONNECTION_STRING: $(sql-connection-string)
+            inputs:
+              azureSubscription: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
+              appType: 'functionAppLinux'
+              appName: 'kamilm-tf-functionapp'
+              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+              runtimeStack: 'DOTNET|3.1'
+              appSettings: '-SQL_CONNECTION_STRING $(sql-connection-string)'
+          

@@ -1,0 +1,25 @@
+trigger:
+  branches:  
+    include: [ main ] 
+  paths: 
+    include: [ "*.tf" ]
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: TerraformTaskV2@2
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    backendServiceArm: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
+    backendAzureRmResourceGroupName: 'kamilm-nestbank-backend-tf-rg'
+    backendAzureRmStorageAccountName: 'tfbackendkamilm'
+    backendAzureRmContainerName: 'tfstate'
+    backendAzureRmKey: 'training.tfstate'
+- task: TerraformTaskV2@2
+  inputs:
+    provider: 'azurerm'
+    command: 'apply'
+    commandOptions: '--auto-approve'
+    environmentServiceNameAzureRM: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
