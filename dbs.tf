@@ -10,8 +10,8 @@ resource "azurerm_mssql_server" "training" {
 resource "azurerm_mssql_database" "training" {
   name        = "kamilm-tf-sqldb"
   server_id   = azurerm_mssql_server.training.id
-  sku_name    = "Basic"
-  max_size_gb = 2
+  sku_name    = "S0"
+  max_size_gb = 10
 }
 
 resource "azurerm_key_vault_secret" "secret4" {
