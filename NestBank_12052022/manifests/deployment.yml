@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: nest 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nest
+  template:
+    metadata:
+      labels:
+        app: nest 
+    spec:
+      containers:
+        - name: nest 
+          image: kamilmnestacr.azurecr.io/nest
+          ports:
+          - containerPort: 80

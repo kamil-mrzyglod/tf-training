@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nest-configmap
+data:
+  KEY_VAULT_NAME: "kamilmtfnestkv"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+  labels:
+    app: nest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nest
+  template:
+    metadata:
+      labels:
+        app: nest
+        aadpodidbinding: nest-pod-identity
+    spec:
+      containers:
+      - name: nest
+        image: kamilmnestacr.azurecr.io/nestapp:latest
+        volumeMounts:
+        - name: nest-configmap
+          mountPath: "/config"
+          readOnly: true
+        env:
+        - name: KEY_VAULT_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: nest-configmap          
+              key: KEY_VAULT_NAME
+      volumes:
+      - name: nest-configmap
+        configMap:
+          name: nest-configmap

@@ -1,0 +1,6 @@
+aks/tf/.terraform/**
+.terraform.lock.hcl
+terraform.tfstate
+**/bin/**
+**/obj/**
+*.exe

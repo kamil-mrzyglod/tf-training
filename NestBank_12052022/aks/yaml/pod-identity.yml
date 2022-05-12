@@ -1,0 +1,17 @@
+apiVersion: "aadpodidentity.k8s.io/v1"
+kind: AzureIdentity
+metadata:
+  name: nest-pod-identity
+spec:
+  type: 0
+  resourceID: /subscriptions/58ac7037-efcc-4fb6-800d-da6ca2ee6aed/resourceGroups/MC_nestbank-tf-aks-rg_kamilm-nest-aks_westeurope/providers/Microsoft.ManagedIdentity/userAssignedIdentities/nest-app-mi
+  clientID: 5e45016a-94a9-4289-82f5-d77371052758
+---
+apiVersion: "aadpodidentity.k8s.io/v1"
+kind: AzureIdentityBinding
+metadata:
+  name: nest-pod-identity-binding
+spec:
+  azureIdentity: nest-pod-identity
+  selector: nest-pod-identity
+---
