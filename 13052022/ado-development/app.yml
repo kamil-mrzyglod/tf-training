@@ -1,0 +1,15 @@
+trigger:
+ paths:
+   include:
+     - app
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: true
+    arguments: '-c Release'
+    workingDirectory: 'app'

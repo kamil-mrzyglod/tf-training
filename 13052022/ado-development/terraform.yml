@@ -1,0 +1,49 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: InitAndPlan
+  jobs:
+    - job: InitAndPlan
+      steps:
+      - task: TerraformTaskV2@2
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/tf'
+          backendServiceArm: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
+          backendAzureRmResourceGroupName: 'kamilm-ops-rg'
+          backendAzureRmStorageAccountName: 'kamilopssa'
+          backendAzureRmContainerName: 'tfstate'
+          backendAzureRmKey: 'tf.tfstate'
+      - task: TerraformTaskV2@2
+        inputs:
+          provider: 'azurerm'
+          command: 'plan'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/tf'
+          commandOptions: '-out=plan.tfplan'
+          environmentServiceNameAzureRM: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: '$(System.DefaultWorkingDirectory)/tf/plan.tfplan'
+          artifact: 'tfplan'
+          publishLocation: 'pipeline'
+- stage: Apply
+  jobs:
+    - deployment: ValidateAndApply
+      environment: tfdeploymentprod
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - checkout: self
+            - task: TerraformTaskV2@2
+              inputs:
+                provider: 'azurerm'
+                command: 'apply'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/tf'
+                commandOptions: 'plan.tfplan --auto-approve'
+                environmentServiceNameAzureRM: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
