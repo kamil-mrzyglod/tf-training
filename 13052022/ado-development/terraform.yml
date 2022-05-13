@@ -1,6 +1,9 @@
 trigger:
 - main
 
+variables:
+  - group: MySecrets
+
 pool:
   vmImage: ubuntu-latest
 
@@ -31,6 +34,11 @@ stages:
           targetPath: '$(System.DefaultWorkingDirectory)/tf/plan.tfplan'
           artifact: 'tfplan'
           publishLocation: 'pipeline'
+      - task: PublishBuildArtifacts@1
+        inputs:
+          PathtoPublish: '$(System.DefaultWorkingDirectory)/tf/plan.tfplan'
+          ArtifactName: 'drop'
+          publishLocation: 'Container'
 - stage: Apply
   jobs:
     - deployment: ValidateAndApply
@@ -40,10 +48,40 @@ stages:
           deploy:
             steps:
             - checkout: self
+              clean: false
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                buildType: 'current'
+                artifactName: 'tfplan'
+                targetPath: '$(System.DefaultWorkingDirectory)'
+            - task: DownloadBuildArtifacts@1
+              inputs:
+                buildType: 'current'
+                downloadType: 'single'
+                artifactName: 'drop'
+                downloadPath: '$(System.DefaultWorkingDirectory)'
+            - task: CmdLine@2
+              inputs:
+                script: 'ls -la'
+            - task: CopyFiles@2
+              inputs:
+                SourceFolder: '$(System.DefaultWorkingDirectory)'
+                Contents: 'plan.tfplan'
+                TargetFolder: '$(System.DefaultWorkingDirectory)/tf'
+            - task: TerraformTaskV2@2
+              inputs:
+                provider: 'azurerm'
+                command: 'init'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/tf'
+                backendServiceArm: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
+                backendAzureRmResourceGroupName: 'kamilm-ops-rg'
+                backendAzureRmStorageAccountName: 'kamilopssa'
+                backendAzureRmContainerName: 'tfstate'
+                backendAzureRmKey: 'tf.tfstate'
             - task: TerraformTaskV2@2
               inputs:
                 provider: 'azurerm'
                 command: 'apply'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/tf'
-                commandOptions: 'plan.tfplan --auto-approve'
+                commandOptions: '--auto-approve "plan.tfplan"'
                 environmentServiceNameAzureRM: 'MVP Sponsorship (58ac7037-efcc-4fb6-800d-da6ca2ee6aed)'
